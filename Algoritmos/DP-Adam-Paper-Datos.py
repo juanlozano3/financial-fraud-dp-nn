@@ -16,7 +16,9 @@ from sklearn.utils import resample
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
+from tensorflow_privacy.privacy.optimizers.dp_optimizer_keras import (
+    DPKerasAdamOptimizer,
+)
 
 
 def define_model(features):
@@ -73,7 +75,7 @@ def model(features, labels, mode, params):
     )
 
     # --- OPTIMIZADOR DP ---
-    optimizer = dp_optimizer.DPGradientDescentGaussianOptimizer(
+    optimizer = DPKerasAdamOptimizer(
         l2_norm_clip=params["l2_norm_clip"],
         noise_multiplier=params["noise_multiplier"],
         num_microbatches=params["num_microbatches"],
@@ -119,7 +121,6 @@ def main():
     """
     # Load and prepare dataset
     data = pd.read_csv("./Datos/2/Base.csv")
-
     # Split features and labels
     X = data.drop(columns=["fraud_bool"])
     y = data["fraud_bool"]
@@ -191,7 +192,7 @@ def main():
 
     # Training parameters
     batch_size = 256
-    total_epochs = 5
+    total_epochs = 10
     steps_per_epoch = X_train.shape[0] // batch_size
 
     # DP-SGD parameters

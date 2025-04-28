@@ -10,6 +10,8 @@ from tensorflow_privacy.privacy.analysis import compute_dp_sgd_privacy
 from tensorflow_privacy.privacy.analysis.compute_dp_sgd_privacy_lib import (
     compute_dp_sgd_privacy,
 )
+from tensorflow import keras
+import keras_tuner as kt
 from sklearn.metrics import classification_report
 
 data = pd.read_csv("./Datos/2/Base.csv")
@@ -75,19 +77,69 @@ batch_size = 256
 learning_rate = 0.25
 
 # Define the model
-model = tf.keras.Sequential(
-    [
-        tf.keras.layers.Dense(128, activation="relu", input_shape=(X_train.shape[1],)),
-        tf.keras.layers.Dense(64, activation="relu"),
-        tf.keras.layers.Dense(1, activation="sigmoid"),
-    ]
+
+
+def model_builder(hp):
+    model = keras.Sequential()
+
+    # Primera capa densa con unidades variables
+    hp_units1 = hp.Int("units1", min_value=32, max_value=512, step=32)
+    model.add(
+        keras.layers.Dense(
+            units=hp_units1, activation="relu", input_shape=(X_train.shape[1],)
+        )
+    )
+
+    # Segunda capa densa con unidades variables
+    hp_units2 = hp.Int("units2", min_value=32, max_value=256, step=32)
+    model.add(keras.layers.Dense(units=hp_units2, activation="relu"))
+
+    # Capa de salida (sigmoid si es multiclase one-hot)
+    model.add(keras.layers.Dense(y_train.shape[1], activation="sigmoid"))
+
+    # Learning rate del optimizador
+    hp_learning_rate = hp.Choice("learning_rate", values=[0.01, 0.05, 0.1, 0.25])
+
+    optimizer = keras.optimizers.SGD(learning_rate=hp_learning_rate)
+
+    model.compile(
+        optimizer=optimizer,
+        loss=keras.losses.CategoricalCrossentropy(from_logits=False),
+        metrics=["accuracy"],
+    )
+
+    return model
+
+
+tuner = kt.Hyperband(
+    model_builder,
+    objective="val_accuracy",
+    max_epochs=20,
+    factor=3,
+    directory="my_dir",
+    project_name="tuning_tabular_model",
 )
+stop_early = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=5)
+
+# Realiza la búsqueda de hiperparámetros
+tuner.search(X_train, y_train, epochs=50, validation_split=0.2, callbacks=[stop_early])
+
+best_hps = tuner.get_best_hyperparameters(num_trials=1)[0]
+
+print(
+    f"""
+La búsqueda de hiperparámetros ha finalizado.
+Mejor número de unidades en la primera capa densa: {best_hps.get('units1')}
+Mejor número de unidades en la segunda capa densa: {best_hps.get('units2')}
+Mejor learning rate: {best_hps.get('learning_rate')}
+"""
+)
+
 
 # Define the loss function and the optimizer
 optimizer = tf.keras.optimizers.SGD(learning_rate=learning_rate)
 
-loss = tf.keras.losses.BinaryCrossentropy(from_logits=False)
-
+loss = tf.keras.losses.CategoricalCrossentropy(from_logits=False)
 
 # Train the model
 model.compile(optimizer=optimizer, loss=loss, metrics=["accuracy"])
@@ -111,12 +163,13 @@ print(f"Test loss: {loss}")
 print(f"Test accuracy: {accuracy}")
 
 # ==== NUEVO BLOQUE: Classification report ====
+
 # Obtener predicciones
 y_pred = model.predict(X_test)
 
-y_pred_classes = (y_pred >= 0.2).astype(int).flatten()
-
-y_true_classes = y_test.values if isinstance(y_test, pd.Series) else y_test
+# Convertir de one-hot a etiquetas
+y_pred_classes = np.argmax(y_pred, axis=1)
+y_true_classes = np.argmax(y_test, axis=1)
 
 # Imprimir classification report
 print("\nClassification Report:")

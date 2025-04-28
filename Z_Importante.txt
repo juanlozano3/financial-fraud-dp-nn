@@ -31,3 +31,25 @@ actualizaciones son ruidosas (como cuando el ruido aditivo es grande en comparac
 con el umbral de recorte), una tasa de aprendizaje baja puede ayudar a que el 
 procedimiento de entrenamiento converja.
 
+
+
+# Dividir por clases
+    X_majority = X[y == 0]
+    X_minority = X[y == 1]
+
+    y_majority = y[y == 0]
+    y_minority = y[y == 1]
+
+    # Downsample majority class
+    X_majority_downsampled, y_majority_downsampled = resample(
+        X_majority,
+        y_majority,
+        replace=False,
+        n_samples=len(y_minority),
+        random_state=42,
+    )
+
+    # orden para balancearrrrrrr
+
+    X_balanced = pd.concat([X_majority_downsampled, X_minority])
+    y_balanced = pd.concat([y_majority_downsampled, y_minority])

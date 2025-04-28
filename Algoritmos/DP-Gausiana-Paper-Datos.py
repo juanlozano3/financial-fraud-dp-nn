@@ -16,7 +16,6 @@ from sklearn.utils import resample
 from sklearn.metrics import confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.decomposition import PCA
 
 
 def define_model(features):
@@ -119,7 +118,6 @@ def main():
     """
     # Load and prepare dataset
     data = pd.read_csv("./Datos/2/Base.csv")
-
     # Split features and labels
     X = data.drop(columns=["fraud_bool"])
     y = data["fraud_bool"]
@@ -191,7 +189,7 @@ def main():
 
     # Training parameters
     batch_size = 256
-    total_epochs = 5
+    total_epochs = 15
     steps_per_epoch = X_train.shape[0] // batch_size
 
     # DP-SGD parameters

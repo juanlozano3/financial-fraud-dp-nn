@@ -136,7 +136,9 @@ def main():
     # Combinamos con las numéricas
     X_num = X[numeric_cols].values
     X = np.hstack([X_num, X_cat])
-
+    # Usar PCA
+    pca = PCA(n_components=10)
+    pca.fit(X)
     # Split into train/test
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
@@ -191,7 +193,7 @@ def main():
 
     # Training parameters
     batch_size = 256
-    total_epochs = 5
+    total_epochs = 15
     steps_per_epoch = X_train.shape[0] // batch_size
 
     # DP-SGD parameters

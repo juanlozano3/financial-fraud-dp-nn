@@ -17,6 +17,7 @@ from sklearn.metrics import confusion_matrix
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
+from sklearn.feature_selection import VarianceThreshold
 
 
 def define_model(features):
@@ -136,6 +137,8 @@ def main():
     # Combinamos con las numéricas
     X_num = X[numeric_cols].values
     X = np.hstack([X_num, X_cat])
+    sel = VarianceThreshold(threshold=(0.8 * (1 - 0.8)))
+    sel.fit_transform(X)
 
     # Split into train/test
     X_train, X_test, y_train, y_test = train_test_split(
@@ -191,7 +194,7 @@ def main():
 
     # Training parameters
     batch_size = 256
-    total_epochs = 5
+    total_epochs = 10
     steps_per_epoch = X_train.shape[0] // batch_size
 
     # DP-SGD parameters
